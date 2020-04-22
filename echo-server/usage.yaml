@@ -1,0 +1,50 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: echo-app
+  labels:
+    app: echo
+spec:
+  containers:
+  - name: echo-app
+    image: prateekgogia/echo-server
+    command: ["/root/echo-server"]
+    args:
+    - "--mode=https" # http or https or grpc
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: echo-service
+spec:
+  selector:
+    app: echo
+  ports:
+  # Default port used by the image
+  - port: 8080
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: echo-service
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/proxy-ssl-secret: default/backend-tls-secret
+spec:
+  tls:
+    - hosts:
+      - k8s-admission.demo.prateekgogia.dev
+      secretName: tls-secret
+  rules:
+    - host: k8s-admission.demo.prateekgogia.dev
+      http:
+        paths:
+        - backend:
+            serviceName: echo-service
+            servicePort: 8080
+          path: /
+---
+# Generating keys
+./genkeys.sh keys
+
+# 
